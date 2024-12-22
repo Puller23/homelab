@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "enabled": true,
+  "timezone": "Europe/Berlin",
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate Dashboard",
+  "commitBodyTable": true,
+  "regexManagers": [
+    {
+      "fileMatch": ["ansible/.*/docker-compose\\.yaml\\.j2"],
+      "matchStrings": [
+        "image:\\s*(?<depName>[\\w./-]+):v?(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasource": "docker"
+    }
+  ]
+}
