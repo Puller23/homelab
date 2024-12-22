@@ -8,14 +8,7 @@
   "dependencyDashboard": true,
   "dependencyDashboardTitle": "Renovate Dashboard",
   "commitBodyTable": true,
-  "customManagers": [
-    {
-      "customType": "regex",
-      "fileMatch": ["ansible/.*/docker-compose\\.yaml\\.j2"],
-      "matchStrings": [
-        "image:\\s*(?<depName>[\\w./-]+):v?(?<currentValue>\\d+\\.\\d+\\.\\d+)"
-      ],
-      "datasourceTemplate": "docker"
-    }
-  ]
+  "docker": {
+    "fileMatch": ["\\.docker-compose.yaml.j2$"]
+  }
 }
