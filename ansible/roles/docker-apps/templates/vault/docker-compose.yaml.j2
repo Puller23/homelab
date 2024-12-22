@@ -1,0 +1,16 @@
+version: '3.6'
+services:
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: vault
+    ports:
+      - "8200:8200"  
+    volumes:
+      - ./config.hcl:/vault/config/config.hcl:ro
+      - ./vault_data:/vault/data
+    cap_add:
+      - IPC_LOCK
+    command: server
+    environment:
+      - TZ=Europe/Berlin
+    restart: always
