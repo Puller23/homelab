@@ -9,6 +9,6 @@
   "dependencyDashboardTitle": "Renovate Dashboard",
   "commitBodyTable": true,
   "docker-compose": {
-    "fileMatch": ["(^|/)docker-compose.yaml.j2$"]
+    "fileMatch": ["(^|/)(?:docker-)?compose[^/]*\\.ya?ml.j2$"]
   }
 }
