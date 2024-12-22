@@ -1,0 +1,13 @@
+[srv-prod]
+live-dns01 ansible_host=10.18.20.5
+live-dns02 ansible_host=10.18.20.6
+live-docker01 ansible_host=10.18.20.21
+live-vault01 ansible_host=10.18.20.22
+
+[dns-prod]
+live-dns01 ansible_host=10.18.20.5
+
+[proxmox]
+live-pve01 ansible_host=172.18.18.13
+live-pve02 ansible_host=172.18.18.10
+

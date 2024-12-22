@@ -1,0 +1,16 @@
+system_timezone: "Europe/Berlin"
+os_packages_install:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - htop
+  - ntpdate
+  - psmisc
+  - software-properties-common
+  - unzip
+  - vim
+
+ansible_ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICZLYPSmq5Ix8/yRBzzuDio0E27sawEziPqmblVJfAWr"
+
+# docker
+containers_base_dir: "/docker/containers"
