@@ -1,0 +1,5 @@
+- hosts: localhost
+  tasks:
+    - name: Show playbook path
+      debug:
+        msg: "The playbook is located at: {{ playbook_dir }}"
