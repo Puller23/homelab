@@ -3,7 +3,6 @@
   "extends": [
     "config:recommended",
     "docker:enableMajor",
-    ":disableRateLimiting",
     ":dependencyDashboard",
     ":enablePreCommit",
     ":semanticCommits"
@@ -13,9 +12,34 @@
   "dependencyDashboard": true,
   "dependencyDashboardTitle": "Renovate Dashboard",
   "commitBodyTable": true,
-  "docker-compose": {
-    "fileMatch": [
-      "(^|/)(?:docker-)?compose[^/]*\\.ya?ml.j2$"
-    ]
-  }
+  "automerge": false,
+  "schedule": [
+    "* 0-6 * * 1"
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "ignorePaths": [
+    "ansible/roles/_docker-apps/**"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^ansible/inventory/group_vars/all/images\\.yaml$/"
+      ],
+      "matchStrings": [
+        "(?:^|\\r?\\n)[a-z][a-z0-9_]*_image:[ \\t]+(?<depName>[^\\s:@]+(?:/[^\\s:@]+)*):(?<currentValue>[^\\s@]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "docker"
+      ],
+      "pinDigests": true
+    }
+  ]
 }
