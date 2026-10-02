@@ -3,4 +3,4 @@
 
   roles:
     - role: lvm
-    - role: docker
+   # - role: docker
