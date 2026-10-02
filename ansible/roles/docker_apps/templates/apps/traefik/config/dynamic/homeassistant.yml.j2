@@ -1,0 +1,17 @@
+http:
+  routers:
+    homeassistant:
+      rule: "Host(`ha.{{ SECRET_DOMAIN }}`)"
+      entryPoints:
+        - websecure
+      service: homeassistant
+      tls:
+        certResolver: ionos
+  services:
+    homeassistant:
+      loadBalancer:
+        servers:
+          # Home Assistant läuft mit network_mode: host und ist daher nicht
+          # über den Docker-Provider auffindbar - deshalb hier fest verdrahtet
+          # auf die Host-IP.
+          - url: "http://{{ ansible_facts['default_ipv4']['address'] }}:8123"

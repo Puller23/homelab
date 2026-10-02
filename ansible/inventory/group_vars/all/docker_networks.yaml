@@ -1,0 +1,5 @@
+---
+docker_networks:
+  # Bestehende Web-Apps; neue Automatisierungsdienste haben eigene Ingress-Netze.
+  - name: proxy
+    internal: false

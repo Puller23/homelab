@@ -1,0 +1,9 @@
+---
+docker_base_dir: /opt/docker
+
+# Basisdomain, unter der alle Services per Subdomain erreichbar sind
+# (traefik.example.com, vault.example.com, ha.example.com, ...)
+base_domain: "example.com"
+
+# E-Mail für Let's-Encrypt-Zertifikate über Traefik
+traefik_acme_email: "admin@example.com"

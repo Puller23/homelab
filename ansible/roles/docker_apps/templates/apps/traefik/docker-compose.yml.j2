@@ -1,0 +1,40 @@
+services:
+  traefik:
+    image: {{ traefik_image | to_json }}
+    restart: unless-stopped
+    container_name: traefik
+    env_file: .env
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/dynamic:/etc/traefik/dynamic:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - proxy
+      - ingress-nodered
+      - ingress-emqx
+      - ingress-code-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.{{ SECRET_DOMAIN }}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=ionos"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+      - "traefik.docker.network=proxy"
+
+networks:
+  proxy:
+    external: true
+  ingress-nodered:
+    external: true
+  ingress-emqx:
+    external: true
+  ingress-code-server:
+    external: true

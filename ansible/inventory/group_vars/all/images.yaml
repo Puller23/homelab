@@ -1,0 +1,6 @@
+---
+# Zentrale Image-Referenzen der Rolle docker_apps. Renovate verwaltet Tag und Digest.
+# Digests referenzieren das Registry-Manifest (bei Multiarch den Image-Index).
+dockhand_image: fnsys/dockhand:latest@sha256:aeb119a8ad1082e112396b9fad60e83419318dfe6bd84ecccf99f6339a169cfc
+traefik_image: traefik:v3.7.13@sha256:24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
+portainer_image: portainer/portainer-ce:latest@sha256:4d616db18cfeb5dd41a69c0958bc825c84483ea9cde1106eb82a5d26f3bd8b0e

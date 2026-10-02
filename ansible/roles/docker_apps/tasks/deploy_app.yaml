@@ -1,0 +1,118 @@
+---
+# Wird pro Eintrag in docker_apps ausgeführt (Variable: app)
+#
+# Erwartete Struktur eines app-Eintrags:
+# - name: mein-service                      # Verzeichnisname unter docker_base_dir
+#   compose_template: mein-service/docker-compose.yml.j2   # relativ zu roles/docker_apps/../../templates/apps/
+#   env:                                     # optional, wird zu .env im App-Verzeichnis
+#     KEY: value
+#   config_files:                            # optional, beliebig viele
+#     - src: mein-service/config/app.conf.j2
+#       dest: config/app.conf
+#   state: present                           # optional: present (default) oder absent zum Entfernen
+
+- name: Voraussetzungen für Automatisierungsdienste prüfen
+  ansible.builtin.include_tasks: automation_prepare.yaml
+  when:
+    - app.name in ['nodered', 'emqx', 'code-server']
+    - app.state | default('present') == 'present'
+
+- name: Frigate USB-Voraussetzungen prüfen
+  ansible.builtin.include_tasks: frigate_preflight.yaml
+  when:
+    - app.name == 'frigate'
+    - app.state | default('present') == 'present'
+
+- name: "{{ app.name }}: Ziel-App-Verzeichnis anlegen"
+  ansible.builtin.file:
+    path: "{{ docker_base_dir }}/{{ app.name }}"
+    state: directory
+    mode: "0755"
+  when: app.state | default('present') == 'present'
+
+- name: "{{ app.name }}: Datenverzeichnisse mit Container-Besitzern anlegen"
+  ansible.builtin.file:
+    path: "{{ docker_base_dir }}/{{ app.name }}/{{ app_directory.path }}"
+    state: directory
+    owner: "{{ app_directory.owner | default('root') }}"
+    group: "{{ app_directory.group | default('root') }}"
+    mode: "{{ app_directory.mode | default('0750') }}"
+  loop: "{{ app.directories | default([]) }}"
+  loop_control:
+    loop_var: app_directory
+  when: app.state | default('present') == 'present'
+
+- name: "{{ app.name }}: Unterverzeichnisse für Configdateien anlegen"
+  ansible.builtin.file:
+    path: "{{ docker_base_dir }}/{{ app.name }}/{{ (config_file.dest | dirname) }}"
+    state: directory
+    mode: "{{ config_file.directory_mode | default('0755') }}"
+  loop: "{{ app.config_files | default([]) }}"
+  loop_control:
+    loop_var: config_file
+    label: "{{ config_file.dest }}"
+  when:
+    - app.state | default('present') == 'present'
+    - (config_file.dest | dirname) != '.'
+
+- name: "{{ app.name }}: Configdateien aus Templates rendern"
+  ansible.builtin.template:
+    src: "apps/{{ config_file.src }}"
+    dest: "{{ docker_base_dir }}/{{ app.name }}/{{ config_file.dest }}"
+    mode: "{{ config_file.mode | default('0644') }}"
+    owner: "{{ config_file.owner | default('root') }}"
+    group: "{{ config_file.group | default('root') }}"
+    force: "{{ config_file.force | default(true) }}"
+  loop: "{{ app.config_files | default([]) }}"
+  loop_control:
+    loop_var: config_file
+    label: "{{ config_file.dest }}"
+  when: app.state | default('present') == 'present'
+  register: config_render_result
+  no_log: "{{ app.sensitive_config | default(false) }}"
+
+- name: "{{ app.name }}: .env-Datei schreiben (falls Variablen definiert)"
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ docker_base_dir }}/{{ app.name }}/.env"
+    mode: "0600"
+  vars:
+    env_vars: "{{ app.env | default({}) }}"
+  when:
+    - app.state | default('present') == 'present'
+    - app.env is defined
+  register: env_render_result
+
+- name: "{{ app.name }}: docker-compose.yml aus Template rendern"
+  ansible.builtin.template:
+    src: "apps/{{ app.compose_template }}"
+    dest: "{{ docker_base_dir }}/{{ app.name }}/docker-compose.yml"
+    mode: "0644"
+  when: app.state | default('present') == 'present'
+  register: compose_render_result
+
+- name: "{{ app.name }}: Stack starten/aktuell halten"
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_base_dir }}/{{ app.name }}"
+    state: present
+    pull: "{{ app.pull_policy | default('missing') }}"
+  when: app.state | default('present') == 'present'
+  register: compose_up_result
+
+# Config- oder Compose-Änderungen ohne neues Image erfordern einen expliziten
+# Neustart der Container, da docker compose selbst reine Dateiänderungen
+# in gemounteten Configs nicht automatisch bemerkt.
+- name: "{{ app.name }}: Container neu starten, falls sich nur Configs geändert haben"
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_base_dir }}/{{ app.name }}"
+    state: restarted
+  when:
+    - app.state | default('present') == 'present'
+    - not compose_up_result.changed
+    - (config_render_result.changed | default(false)) or (env_render_result.changed | default(false))
+
+- name: "{{ app.name }}: Stack entfernen"
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_base_dir }}/{{ app.name }}"
+    state: absent
+  when: app.state | default('present') == 'absent'

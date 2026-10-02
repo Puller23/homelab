@@ -1,0 +1,23 @@
+---
+- name: Verify data mounts before deploying applications
+  ansible.builtin.import_role:
+    name: app_storage
+    tasks_from: verify
+
+- name: Docker-Netzwerke gemäß docker_networks anlegen
+  community.docker.docker_network:
+    name: "{{ net.name }}"
+    driver: bridge
+    internal: "{{ net.internal | default(false) }}"
+    state: present
+  loop: "{{ docker_networks }}"
+  loop_control:
+    loop_var: net
+    label: "{{ net.name }}"
+
+- name: Jede definierte Applikation deployen
+  ansible.builtin.include_tasks: deploy_app.yaml
+  loop: "{{ docker_apps }}"
+  loop_control:
+    loop_var: app
+    label: "{{ app.name }}"

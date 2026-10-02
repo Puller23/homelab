@@ -1,0 +1,37 @@
+---
+docker_apps:
+
+  # USB-Passthrough zuerst einrichten: docs/frigate-coral.md
+  # - name: frigate
+  #   compose_template: frigate/docker-compose.yml.j2
+  #   sensitive_config: true
+  #   config_files:
+  #     - src: frigate/config/config.yml.j2
+  #       dest: config/config.yml
+  #       mode: "0600"
+
+  # --- Traefik: Ingress auf 80/443; Frigate separat auf 8971 ---
+  - name: traefik
+    compose_template: traefik/docker-compose.yml.j2
+    env:
+      TRAEFIK_DASHBOARD_AUTH: "{{ SECRET_TRAEFIK_DASHBOARD_AUTH }}"
+      IONOS_API_KEY: "{{ SECRET_IONOS_API_KEY }}"
+    config_files:
+      - src: traefik/config/traefik.yml.j2
+        dest: config/traefik.yml
+      # Statische Route für Home Assistant, das wegen mDNS/SSDP im
+      # host-Netzwerk läuft und daher nicht per Docker-Provider gefunden wird.
+      - src: traefik/config/dynamic/homeassistant.yml.j2
+        dest: config/dynamic/homeassistant.yml
+
+  # --- Dockhand: Docker- und Compose-Management ---
+  - name: dockhand
+    compose_template: dockhand/docker-compose.yml.j2
+
+  # --- Portainer: Docker-Management-UI ---
+  # - name: portainer
+  #   compose_template: portainer/docker-compose.yml.j2
+    # config_files:
+    #   - src: portainer/config/admin-password.j2
+    #     dest: config/admin-password
+    #     mode: "0600"
