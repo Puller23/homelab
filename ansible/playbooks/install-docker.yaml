@@ -1,4 +1,4 @@
-- hosts: live-docker01
+- hosts: test-docker01
   become: true
 
   roles:
