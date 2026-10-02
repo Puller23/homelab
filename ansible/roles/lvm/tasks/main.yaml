@@ -1,0 +1,150 @@
+---
+- name: Validate storage configuration and execution mode
+  ansible.builtin.assert:
+    that:
+      - not ansible_check_mode
+      - ansible_facts.os_family == 'Debian'
+      - app_storage_volumes | length > 0
+      - app_storage_units | length > 0
+      - app_storage_vg is match('^[a-z][a-z0-9_]*$')
+      - app_storage_volumes | map(attribute='name') | unique | length == app_storage_volumes | length
+      - app_storage_volumes | map(attribute='path') | unique | length == app_storage_volumes | length
+    fail_msg: Storage requires Debian/Ubuntu, configured volumes/units and a normal run (no --check).
+
+- name: Validate bounded LV sizes and supported data paths
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9_]*$')
+      - item.size is match('^[1-9][0-9]*G$')
+      - item.path in ['/var/lib/postgresql', '/var/lib/docker', '/var/lib/containerd', '/opt/docker']
+  loop: "{{ app_storage_volumes }}"
+
+- name: Install storage tools
+  ansible.builtin.apt:
+    name: [lvm2, e2fsprogs, rsync, util-linux]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Inspect data disk, existing LVM and mount destinations without changing them
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts.python.executable }}"
+      - -c
+      - "{{ lookup('ansible.builtin.file', role_path ~ '/files/preflight.py') }}"
+    stdin: "{{ {'serial': app_storage_serial, 'vg': app_storage_vg, 'volumes': app_storage_volumes, 'migrate': app_storage_migrate_existing | bool} | to_json }}"
+  register: app_storage_preflight
+  changed_when: false
+
+- name: Save checked storage mapping
+  ansible.builtin.set_fact:
+    app_storage_checked: "{{ app_storage_preflight.stdout | from_json }}"
+
+- name: Read service and socket states before mounting new data volumes
+  ansible.builtin.command:
+    argv: [systemctl, list-units, --all, '--type=service,socket', --output=json, --no-pager]
+  register: app_storage_systemd_units
+  changed_when: false
+
+- name: Remember services to resume after successful migration
+  ansible.builtin.set_fact:
+    app_storage_resume_units: >-
+      {{ app_storage_systemd_units.stdout | from_json
+         | selectattr('unit', 'match', app_storage_service_pattern)
+         | selectattr('active', 'in', ['active', 'activating', 'reloading']) | map(attribute='unit') | list }}
+
+# Stop sockets first so they cannot reactivate Docker while data is being copied.
+- name: Stop existing sockets and services before changing mountpoints
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+  loop: >-
+    {{ (app_storage_resume_units | select('match', '.*\.socket$') | list)
+       + (app_storage_resume_units | reject('match', '.*\.socket$') | sort(reverse=true) | list) }}
+  when: app_storage_checked.pending | length > 0
+
+- name: Verify no nested mounts remain after stopping services
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts.python.executable }}"
+      - -c
+      - "{{ lookup('ansible.builtin.file', role_path ~ '/files/preflight.py') }}"
+    stdin: "{{ {'serial': app_storage_serial, 'vg': app_storage_vg, 'volumes': app_storage_volumes, 'migrate': app_storage_migrate_existing | bool, 'quiesced': true} | to_json }}"
+  register: app_storage_quiesced
+  changed_when: false
+  when: app_storage_checked.pending | length > 0
+
+- name: Refresh directory state after stopping writers
+  ansible.builtin.set_fact:
+    app_storage_checked: "{{ app_storage_quiesced.stdout | from_json }}"
+  when: app_storage_checked.pending | length > 0
+
+- name: Create or grow the dedicated volume group without removing PVs
+  community.general.lvg:
+    vg: "{{ app_storage_vg }}"
+    pvs: "{{ app_storage_checked.device }}"
+    pvresize: true
+    remove_extra_pvs: false
+
+- name: Create or grow logical volumes without shrinking
+  community.general.lvol:
+    vg: "{{ app_storage_vg }}"
+    lv: "{{ item.name }}"
+    size: "{{ item.size }}"
+    shrink: false
+    resizefs: true
+  loop: "{{ app_storage_volumes }}"
+
+- name: Create ext4 filesystems without overwriting existing signatures
+  community.general.filesystem:
+    dev: "/dev/{{ app_storage_vg }}/{{ item.name }}"
+    fstype: ext4
+    force: false
+    resizefs: true
+  loop: "{{ app_storage_volumes }}"
+
+- name: Populate and mount newly configured volumes
+  ansible.builtin.include_tasks: mount.yaml
+  loop: "{{ app_storage_checked.pending }}"
+  loop_control:
+    loop_var: storage_volume
+    label: "{{ storage_volume.path }}"
+
+- name: Persist and verify all data mounts
+  ansible.posix.mount:
+    path: "{{ item.path }}"
+    src: "/dev/{{ app_storage_vg }}/{{ item.name }}"
+    fstype: ext4
+    opts: defaults
+    dump: '0'
+    passno: '2'
+    state: mounted
+  loop: "{{ app_storage_volumes }}"
+
+- name: Create service drop-in directories
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}.d"
+    state: directory
+    mode: '0755'
+  loop: "{{ app_storage_units }}"
+
+- name: Require data mounts before services and sockets can start
+  ansible.builtin.template:
+    src: mounts.conf.j2
+    dest: "/etc/systemd/system/{{ item }}.d/20-app-storage.conf"
+    mode: '0644'
+  loop: "{{ app_storage_units }}"
+  register: app_storage_dropins
+
+- name: Load mount dependencies before packages or services start
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: app_storage_dropins.changed or app_storage_checked.pending | length > 0
+
+# Intentionally no rescue/always restart: after a failed copy services stay stopped.
+- name: Resume previously running services after all mounts are ready
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ app_storage_resume_units }}"
+  when: app_storage_checked.pending | length > 0

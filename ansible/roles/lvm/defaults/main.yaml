@@ -1,0 +1,8 @@
+---
+app_storage_serial: app-data
+app_storage_vg: vg_appdata
+app_storage_volumes: []
+app_storage_units: []
+app_storage_service_pattern: '^$'
+# Existing data is copied only during an explicitly requested maintenance run.
+app_storage_migrate_existing: false

@@ -1,0 +1,16 @@
+---
+app_storage_volumes:
+  # - name: docker
+  #   size: 60G
+  #   path: /var/lib/docker
+  - name: containerd
+    size: 20G
+    path: /var/lib/containerd
+  - name: apps
+    size: 20G
+    path: /opt/docker
+app_storage_units:
+  - docker.socket
+  - docker.service
+  - containerd.service
+app_storage_service_pattern: '^(docker\.(socket|service)|containerd\.service)$'

@@ -1,0 +1,25 @@
+---
+- name: Require the configured data volumes
+  ansible.builtin.assert:
+    that:
+      - app_storage_volumes | length > 0
+      - docker_base_dir == '/opt/docker'
+
+- name: Verify all app paths are mounted from their expected LVs
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts.python.executable }}"
+      - -c
+      - |
+        import json, os, subprocess, sys
+        path, expected = sys.argv[1:]
+        result = subprocess.run(['findmnt', '--json', '--mountpoint', path,
+                                 '--output', 'SOURCE,FSTYPE'], check=True, capture_output=True, text=True)
+        mount = json.loads(result.stdout)['filesystems'][0]
+        assert os.path.realpath(mount['source']) == os.path.realpath(expected), 'Unexpected mount source'
+        assert mount['fstype'] == 'ext4', 'Unexpected filesystem'
+      - "{{ item.path }}"
+      - "/dev/{{ app_storage_vg }}/{{ item.name }}"
+  loop: "{{ app_storage_volumes }}"
+  changed_when: false
+  check_mode: false
