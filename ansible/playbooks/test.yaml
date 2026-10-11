@@ -2,4 +2,10 @@
   tasks:
     - name: Show playbook path
       debug:
-        msg: "The playbook is located at: {{ playbook_dir }} {{ testvariable }}"
+        msg: "The playbook is located at: {{ playbook_dir }}"
+    - name: Check that the Semaphore environment secret is available
+      ansible.builtin.assert:
+        that:
+          - lookup('ansible.builtin.env', 'testvariable') | length > 0
+        fail_msg: "Environment variable testvariable is missing or empty."
+        success_msg: "Environment variable testvariable is available."
