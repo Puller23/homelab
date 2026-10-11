@@ -1,5 +1,5 @@
 - hosts: live-docker01
   become: true
-  gather_facts: true
+
   roles:
-    - role: docker-apps
+    - role: docker_apps
