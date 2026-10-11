@@ -1,0 +1,18 @@
+services:
+  homeassistant:
+    image: {{ homeassistant_image | to_json }}
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      TZ: {{ TIMEZONE | to_json }}
+    volumes:
+      - ./config:/config
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      - "traefik.enable=false"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
