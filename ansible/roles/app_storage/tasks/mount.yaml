@@ -1,0 +1,75 @@
+---
+- name: Mount destination temporarily for copying
+  ansible.posix.mount:
+    path: "/mnt/ansible-app-storage/{{ storage_volume.name }}"
+    src: "/dev/{{ app_storage_vg }}/{{ storage_volume.name }}"
+    fstype: ext4
+    opts: defaults
+    state: ephemeral
+
+- name: Refuse to merge source data into a populated destination filesystem
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts.python.executable }}"
+      - -c
+      - |
+        import pathlib, sys
+        root = pathlib.Path(sys.argv[1])
+        assert not any(p.name != 'lost+found' for p in root.iterdir()), "Destination contains data; recover the previous migration manually"
+        lost = root / 'lost+found'
+        assert not lost.exists() or (lost.is_dir() and not any(lost.iterdir())), "Nonempty lost+found requires manual inspection"
+      - "/mnt/ansible-app-storage/{{ storage_volume.name }}"
+  changed_when: false
+
+- name: Copy existing directory with ownership, permissions, hardlinks, ACLs and xattrs
+  ansible.builtin.command:
+    argv:
+      - rsync
+      - -aHAX
+      - --numeric-ids
+      - --one-file-system
+      - "{{ storage_volume.path }}/"
+      - "/mnt/ansible-app-storage/{{ storage_volume.name }}/"
+  when: storage_volume.exists
+  changed_when: true
+
+- name: Verify copied content and metadata before switching mountpoints
+  ansible.builtin.command:
+    argv:
+      - rsync
+      - -aHAXnc
+      - --numeric-ids
+      - --one-file-system
+      - --itemize-changes
+      - "{{ storage_volume.path }}/"
+      - "/mnt/ansible-app-storage/{{ storage_volume.name }}/"
+  when: storage_volume.exists
+  register: app_storage_copy_check
+  changed_when: false
+  failed_when: app_storage_copy_check.rc != 0 or app_storage_copy_check.stdout | length > 0
+
+- name: Unmount temporary destination
+  ansible.posix.mount:
+    path: "/mnt/ansible-app-storage/{{ storage_volume.name }}"
+    state: unmounted
+
+- name: Retain original data as a rollback copy
+  ansible.builtin.command:
+    argv: [mv, "{{ storage_volume.path }}", "{{ storage_volume.path }}.pre-lvm"]
+    creates: "{{ storage_volume.path }}.pre-lvm"
+  when: storage_volume.nonempty
+
+- name: Mount data volume at its service path
+  ansible.posix.mount:
+    path: "{{ storage_volume.path }}"
+    src: "/dev/{{ app_storage_vg }}/{{ storage_volume.name }}"
+    fstype: ext4
+    opts: defaults
+    dump: '0'
+    passno: '2'
+    state: mounted
+
+- name: Report rollback copy that still occupies root filesystem space
+  ansible.builtin.debug:
+    msg: "Migration verified. {{ storage_volume.path }}.pre-lvm remains on the system disk. After application checks and an external backup, remove it manually to reclaim space."
+  when: storage_volume.nonempty

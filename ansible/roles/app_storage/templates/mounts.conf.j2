@@ -1,0 +1,6 @@
+# Managed by Ansible. Never start the service on the root filesystem instead.
+[Unit]
+RequiresMountsFor={{ app_storage_volumes | map(attribute='path') | join(' ') }}
+{% for volume in app_storage_volumes %}
+AssertPathIsMountPoint={{ volume.path }}
+{% endfor %}
