@@ -16,9 +16,6 @@ services:
       - ./letsencrypt:/letsencrypt
     networks:
       - proxy
-      - ingress-nodered
-      - ingress-emqx
-      - ingress-code-server
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.{{ SECRET_DOMAIN }}`)"
@@ -31,10 +28,4 @@ services:
 
 networks:
   proxy:
-    external: true
-  ingress-nodered:
-    external: true
-  ingress-emqx:
-    external: true
-  ingress-code-server:
     external: true
