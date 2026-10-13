@@ -1,0 +1,21 @@
+---
+# Passwords are read on the controller (Semaphore runner), not the database VM.
+postgresql_databases:
+  - name: homeassistant
+    user: homeassistant
+    password: "{{ SECRET_POSTGRES_HOMEASSISTANT_PASSWORD }}"
+    allowed_cidrs: ['10.18.20.0/24','172.18.18.100/32'] # Example: ['10.18.20.21/32']; use the actual client IP.
+  - name: paperless
+    user: paperless
+    password: "{{ SECRET_POSTGRES_PAPERLESS_PASSWORD }}"
+    allowed_cidrs: ['10.18.20.0/24','172.18.18.100/32']
+
+# scsi1 supplied by OpenTofu: 100 GiB, leaving ~20 GiB for growth.
+app_storage_volumes:
+  - name: postgresql
+    size: 40G
+    path: /var/lib/postgresql
+app_storage_units:
+  - postgresql.service
+  - postgresql@.service
+app_storage_service_pattern: '^postgresql(@.*)?\.service$'

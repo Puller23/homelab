@@ -13,3 +13,6 @@ live-pve02 ansible_host=172.18.18.10
 
 [test]
 test-docker01 ansible_host=10.18.20.52
+
+[postgresql]
+live-db01   ansible_host=10.18.20.51

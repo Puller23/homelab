@@ -1,0 +1,5 @@
+---
+# Uses the PostgreSQL version provided by the Debian/Ubuntu distribution.
+postgresql_listen_addresses: "*"
+postgresql_databases: []
+# Each database: name, user, password, allowed_cidrs (list).

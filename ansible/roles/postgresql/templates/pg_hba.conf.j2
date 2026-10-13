@@ -1,0 +1,12 @@
+# Managed by Ansible. This role owns the complete authentication policy.
+# Keep local administration possible without a database password.
+local all postgres peer
+local all all peer
+{% for database in postgresql_databases %}
+{% for cidr in database.allowed_cidrs %}
+host {{ database.name }} {{ database.user }} {{ cidr }} scram-sha-256
+{% endfor %}
+{% endfor %}
+# No application can connect to another application's database over TCP.
+host all all 0.0.0.0/0 reject
+host all all ::/0 reject

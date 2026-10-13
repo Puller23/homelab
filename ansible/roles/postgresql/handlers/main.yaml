@@ -1,0 +1,5 @@
+---
+- name: Restart PostgreSQL cluster
+  ansible.builtin.service:
+    name: "postgresql@{{ postgresql_cluster.version }}-{{ postgresql_cluster.cluster }}"
+    state: restarted

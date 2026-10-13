@@ -1,0 +1,57 @@
+---
+- name: Configure application database as the local PostgreSQL administrator
+  become: true
+  become_user: postgres
+  environment:
+    PGOPTIONS: '-c password_encryption=scram-sha-256'
+  block:
+    - name: Create application login without administrative privileges
+      community.postgresql.postgresql_user:
+        name: "{{ postgresql_database.user }}"
+        password: "{{ postgresql_database.password }}"
+        role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION,NOBYPASSRLS
+        login_unix_socket: /var/run/postgresql
+        port: "{{ postgresql_cluster.port }}"
+      no_log: true
+
+    - name: Create application-owned UTF-8 database
+      community.postgresql.postgresql_db:
+        name: "{{ postgresql_database.name }}"
+        owner: "{{ postgresql_database.user }}"
+        encoding: UTF8
+        template: template0
+        login_unix_socket: /var/run/postgresql
+        port: "{{ postgresql_cluster.port }}"
+
+    - name: Revoke default public database access
+      community.postgresql.postgresql_privs:
+        login_db: postgres
+        type: database
+        objs: "{{ postgresql_database.name }}"
+        roles: PUBLIC
+        privs: ALL
+        state: absent
+        login_unix_socket: /var/run/postgresql
+        port: "{{ postgresql_cluster.port }}"
+
+    - name: Revoke default public schema access
+      community.postgresql.postgresql_privs:
+        login_db: "{{ postgresql_database.name }}"
+        type: schema
+        objs: public
+        roles: PUBLIC
+        privs: ALL
+        state: absent
+        login_unix_socket: /var/run/postgresql
+        port: "{{ postgresql_cluster.port }}"
+
+    - name: Allow application migrations in its own public schema
+      community.postgresql.postgresql_privs:
+        login_db: "{{ postgresql_database.name }}"
+        type: schema
+        objs: public
+        roles: "{{ postgresql_database.user }}"
+        privs: ALL
+        state: present
+        login_unix_socket: /var/run/postgresql
+        port: "{{ postgresql_cluster.port }}"

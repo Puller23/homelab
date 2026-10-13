@@ -1,0 +1,105 @@
+---
+- name: Validate supported platform and database list
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == 'Debian'
+      - postgresql_databases | length > 0
+      - postgresql_databases | map(attribute='name') | unique | length == postgresql_databases | length
+      - postgresql_databases | map(attribute='user') | unique | length == postgresql_databases | length
+    fail_msg: This role requires Debian/Ubuntu and unique database names and users.
+
+- name: Validate application credentials before changing the server
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9_]{0,62}$')
+      - item.user is match('^[a-z][a-z0-9_]{0,62}$')
+      - item.name not in ['postgres', 'template0', 'template1', 'all', 'replication', 'sameuser', 'samerole']
+      - item.user != 'postgres'
+      - not item.user.startswith('pg_')
+      - item.password | length >= 16
+      - item.allowed_cidrs is sequence
+      - item.allowed_cidrs is not string
+    fail_msg: Set unique application names, passwords of at least 16 characters, and allowed_cidrs lists.
+  loop: "{{ postgresql_databases }}"
+  # no_log: true
+
+- name: Validate client CIDRs before changing PostgreSQL configuration
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts.python.executable }}"
+      - -c
+      - |
+        import ipaddress, json, sys
+        for cidr in json.load(sys.stdin):
+            if '/' not in cidr:
+                raise ValueError('Client addresses require a CIDR prefix')
+            ipaddress.ip_network(cidr, strict=True)
+    stdin: "{{ postgresql_databases | map(attribute='allowed_cidrs') | flatten | to_json }}"
+  changed_when: false
+  check_mode: false
+
+- name: Prepare LVM data storage before installing PostgreSQL
+  ansible.builtin.import_role:
+    name: app_storage
+
+- name: Install PostgreSQL and Ansible dependencies
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - python3-psycopg2
+      - libjson-perl
+      - acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Discover the distribution PostgreSQL cluster
+  ansible.builtin.command: pg_lsclusters --json
+  register: postgresql_clusters
+  changed_when: false
+  check_mode: false
+
+- name: Require a single cluster to avoid modifying the wrong instance
+  ansible.builtin.assert:
+    that:
+      - postgresql_clusters.stdout | from_json | length == 1
+    fail_msg: This role expects one PostgreSQL cluster; review existing clusters before proceeding.
+
+- name: Select PostgreSQL cluster
+  ansible.builtin.set_fact:
+    postgresql_cluster: "{{ (postgresql_clusters.stdout | from_json)[0] }}"
+
+- name: Configure listening and password encryption
+  ansible.builtin.template:
+    src: ansible.conf.j2
+    dest: "/etc/postgresql/{{ postgresql_cluster.version }}/{{ postgresql_cluster.cluster }}/conf.d/ansible.conf"
+    owner: postgres
+    group: postgres
+    mode: '0644'
+  notify: Restart PostgreSQL cluster
+
+- name: Configure application-specific network access
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "/etc/postgresql/{{ postgresql_cluster.version }}/{{ postgresql_cluster.cluster }}/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: '0640'
+    backup: true
+  notify: Restart PostgreSQL cluster
+
+- name: Enable and start PostgreSQL cluster
+  ansible.builtin.service:
+    name: "postgresql@{{ postgresql_cluster.version }}-{{ postgresql_cluster.cluster }}"
+    state: started
+    enabled: true
+
+- name: Apply configuration before provisioning databases
+  ansible.builtin.meta: flush_handlers
+
+- name: Provision each application's database
+  ansible.builtin.include_tasks: database.yaml
+  loop: "{{ postgresql_databases }}"
+  loop_control:
+    loop_var: postgresql_database
+    label: "{{ postgresql_database.name }}"

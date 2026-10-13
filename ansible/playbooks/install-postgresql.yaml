@@ -1,0 +1,7 @@
+---
+- name: Install application databases on live-db01
+  hosts: live-db01
+  become: true
+  roles:
+    - role: app_storage
+    - role: postgresql
