@@ -1,0 +1,31 @@
+---
+- name: Clean up unused Docker images and build cache
+  hosts: test-docker01
+  become: true
+  gather_facts: false
+  vars:
+    docker_cleanup_age: "168h"
+
+  tasks:
+    - name: Prune unused images and build cache older than the retention period
+      community.docker.docker_prune:
+        docker_host: unix:///var/run/docker.sock
+        timeout: 300
+        containers: false
+        networks: false
+        volumes: false
+        images: true
+        images_filters:
+          dangling: false
+          until: "{{ docker_cleanup_age }}"
+        builder_cache: true
+        builder_cache_all: true
+        builder_cache_filters:
+          until: "{{ docker_cleanup_age }}"
+      register: docker_cleanup_result
+
+    - name: Report reclaimed disk space
+      ansible.builtin.debug:
+        msg:
+          - "Images: {{ docker_cleanup_result.images_space_reclaimed | default(0) }} bytes reclaimed"
+          - "Build cache: {{ docker_cleanup_result.builder_cache_space_reclaimed | default(0) }} bytes reclaimed"
