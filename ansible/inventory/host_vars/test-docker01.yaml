@@ -1,4 +1,7 @@
 ---
+# Use the verified interpreter instead of automatic discovery.
+ansible_python_interpreter: /usr/bin/python3.14
+
 app_storage_volumes:
   # - name: docker
   #   size: 60G
