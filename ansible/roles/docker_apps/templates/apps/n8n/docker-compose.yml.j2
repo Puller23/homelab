@@ -1,0 +1,29 @@
+services:
+  n8n:
+    image: {{ n8n_image | to_json }}
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./home:/home/node/.n8n
+      - ./files:/files
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dockhand.rule=Host(`n8n.{{ SECRET_DOMAIN }}`)"
+      - "traefik.http.routers.dockhand.entrypoints=websecure"
+      - "traefik.http.routers.dockhand.tls.certresolver=ionos"
+      - "traefik.http.routers.dockhand.middlewares=traefik-auth@docker"
+      - "traefik.http.services.dockhand.loadbalancer.server.port=5678"
+      - "traefik.docker.network=proxy"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true

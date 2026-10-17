@@ -34,3 +34,10 @@ docker_apps:
     # Inhalte werden ausschließlich im separaten Home-Assistant-Repo verwaltet.
     directories:
       - {path: config, owner: '1000', group: '1000'}
+
+  # --- N8N ---
+  - name: n8n
+    compose_template: n8n/docker-compose.yml.j2
+    directories:
+      - {path: home, owner: '1000', group: '1000'}
+      - {path: files, owner: '1000', group: '1000'}
