@@ -1,7 +1,7 @@
 # Docker-Cleanup in Semaphore
 
 Das Playbook `ansible/playbooks/cleanup-docker.yaml` verwendet denselben Host
-wie `deploy-docker-apps.yaml`: `test-docker01`.
+wie `deploy-docker-apps.yaml`: `docker01`.
 
 Es entfernt nicht von Containern referenzierte Images (auch mit Tags) und
 ungenutzten Build-Cache mit dem Filter `until: 168h` (7 Tage).

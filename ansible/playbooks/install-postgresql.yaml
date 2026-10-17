@@ -1,6 +1,6 @@
 ---
-- name: Install application databases on live-db01
-  hosts: live-db01
+- name: Install application databases on db01
+  hosts: db01
   become: true
   roles:
     - role: app_storage

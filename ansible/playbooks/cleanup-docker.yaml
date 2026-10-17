@@ -1,6 +1,6 @@
 ---
 - name: Clean up unused Docker images and build cache
-  hosts: test-docker01
+  hosts: docker01
   become: true
   gather_facts: false
   vars:
