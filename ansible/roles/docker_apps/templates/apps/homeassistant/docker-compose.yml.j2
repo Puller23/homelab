@@ -4,12 +4,16 @@ services:
     container_name: homeassistant
     restart: unless-stopped
     network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     environment:
       TZ: {{ TIMEZONE | to_json }}
       HOMEASSISTANT_RECORDER_DB_URL: "${HOMEASSISTANT_RECORDER_DB_URL:?Recorder database URL is required}"
     volumes:
       - ./config:/config
       - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
     labels:
       - "traefik.enable=false"
     logging:
