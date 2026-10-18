@@ -11,7 +11,7 @@
         password: "{{ postgresql_database.password }}"
         role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION,NOBYPASSRLS
         login_unix_socket: /var/run/postgresql
-        port: "{{ postgresql_cluster.port }}"
+        login_port: "{{ postgresql_cluster.port }}"
       no_log: true
 
     - name: Create application-owned UTF-8 database
@@ -21,7 +21,7 @@
         encoding: UTF8
         template: template0
         login_unix_socket: /var/run/postgresql
-        port: "{{ postgresql_cluster.port }}"
+        login_port: "{{ postgresql_cluster.port }}"
 
     - name: Revoke default public database access
       community.postgresql.postgresql_privs:
@@ -32,7 +32,7 @@
         privs: ALL
         state: absent
         login_unix_socket: /var/run/postgresql
-        port: "{{ postgresql_cluster.port }}"
+        login_port: "{{ postgresql_cluster.port }}"
 
     - name: Revoke default public schema access
       community.postgresql.postgresql_privs:
@@ -43,7 +43,7 @@
         privs: ALL
         state: absent
         login_unix_socket: /var/run/postgresql
-        port: "{{ postgresql_cluster.port }}"
+        login_port: "{{ postgresql_cluster.port }}"
 
     - name: Allow application migrations in its own public schema
       community.postgresql.postgresql_privs:
@@ -54,4 +54,4 @@
         privs: ALL
         state: present
         login_unix_socket: /var/run/postgresql
-        port: "{{ postgresql_cluster.port }}"
+        login_port: "{{ postgresql_cluster.port }}"
