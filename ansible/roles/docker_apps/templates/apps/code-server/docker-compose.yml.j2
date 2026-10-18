@@ -1,0 +1,42 @@
+services:
+  code-server:
+    image: {{ code_server_image | to_json }}
+    container_name: code-server
+    restart: unless-stopped
+    user: "1000:1000"
+    working_dir: /config
+    # Fixed UID: bypass the image's setuid fixuid bootstrap.
+    entrypoint: ["/usr/bin/dumb-init", "--", "/usr/bin/code-server"]
+    command:
+      - --config
+      - /etc/code-server/config.yaml
+      - --disable-telemetry
+      - /config
+    environment:
+      TZ: {{ TIMEZONE | to_json }}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - ./config/config.yaml:/etc/code-server/config.yaml:ro
+      - ./data:/home/coder/.local
+      - {{ (docker_base_dir ~ '/homeassistant/config:/config') | to_json }}
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.code-server.rule=Host(`vscode.{{ SECRET_DOMAIN }}`)"
+      - "traefik.http.routers.code-server.entrypoints=websecure"
+      - "traefik.http.routers.code-server.tls.certresolver=ionos"
+      - "traefik.http.services.code-server.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true

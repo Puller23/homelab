@@ -6,6 +6,7 @@ services:
     network_mode: host
     environment:
       TZ: {{ TIMEZONE | to_json }}
+      HOMEASSISTANT_RECORDER_DB_URL: "${HOMEASSISTANT_RECORDER_DB_URL:?Recorder database URL is required}"
     volumes:
       - ./config:/config
       - /etc/localtime:/etc/localtime:ro

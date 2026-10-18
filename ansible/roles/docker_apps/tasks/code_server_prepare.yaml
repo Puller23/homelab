@@ -1,0 +1,45 @@
+---
+- name: Eigenes code-server-Passwort voraussetzen
+  ansible.builtin.assert:
+    that:
+      - SECRET_CODE_SERVER_PASSWORD | length >= 16
+    fail_msg: SECRET_CODE_SERVER_PASSWORD muss mindestens 16 Zeichen enthalten.
+  no_log: true
+
+- name: Vorhandenes Home-Assistant-Configverzeichnis prüfen
+  ansible.builtin.stat:
+    path: "{{ docker_base_dir }}/homeassistant/config"
+  register: code_server_ha_config
+
+- name: Home-Assistant-Verzeichnis voraussetzen
+  ansible.builtin.assert:
+    that:
+      - code_server_ha_config.stat.isdir | default(false)
+      - not (code_server_ha_config.stat.islnk | default(false))
+    fail_msg: Home Assistant muss vor code-server eingerichtet sein.
+
+- name: ACL-Werkzeuge installieren
+  ansible.builtin.apt:
+    name: acl
+    state: present
+
+- name: Editor-Benutzer Zugriff auf bestehende Home-Assistant-Dateien geben
+  ansible.posix.acl:
+    path: "{{ docker_base_dir }}/homeassistant/config"
+    etype: user
+    entity: '1000'
+    permissions: rwX
+    state: present
+    recursive: true
+    follow: false
+
+- name: Editor-Zugriff für neue Dateien und Unterverzeichnisse vererben
+  ansible.posix.acl:
+    path: "{{ docker_base_dir }}/homeassistant/config"
+    etype: user
+    entity: '1000'
+    permissions: rwX
+    default: true
+    state: present
+    recursive: true
+    follow: false
