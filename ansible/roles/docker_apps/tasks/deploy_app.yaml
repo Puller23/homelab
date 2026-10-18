@@ -11,10 +11,26 @@
 #       dest: config/app.conf
 #   state: present                           # optional: present (default) oder absent zum Entfernen
 
+- name: PostgreSQL-Passwort für Home Assistant prüfen
+  ansible.builtin.assert:
+    that:
+      - SECRET_POSTGRES_HOMEASSISTANT_PASSWORD | length >= 16
+    fail_msg: SECRET_POSTGRES_HOMEASSISTANT_PASSWORD muss wie bei der Datenbankinstallation bereitgestellt werden.
+  when:
+    - app.name == 'homeassistant'
+    - app.state | default('present') == 'present'
+  no_log: true
+
 - name: Voraussetzungen für Automatisierungsdienste prüfen
   ansible.builtin.include_tasks: automation_prepare.yaml
   when:
-    - app.name in ['nodered', 'emqx', 'code-server']
+    - app.name in ['nodered', 'emqx']
+    - app.state | default('present') == 'present'
+
+- name: Schreibzugriff und Anmeldung für den Home-Assistant-Editor vorbereiten
+  ansible.builtin.include_tasks: code_server_prepare.yaml
+  when:
+    - app.name == 'code-server'
     - app.state | default('present') == 'present'
 
 - name: Frigate USB-Voraussetzungen prüfen
@@ -82,6 +98,7 @@
     - app.state | default('present') == 'present'
     - app.env is defined
   register: env_render_result
+  no_log: true
 
 - name: "{{ app.name }}: docker-compose.yml aus Template rendern"
   ansible.builtin.template:
@@ -98,6 +115,7 @@
     pull: "{{ app.pull_policy | default('missing') }}"
   when: app.state | default('present') == 'present'
   register: compose_up_result
+  no_log: "{{ app.sensitive_config | default(false) }}"
 
 # Config- oder Compose-Änderungen ohne neues Image erfordern einen expliziten
 # Neustart der Container, da docker compose selbst reine Dateiänderungen
@@ -106,6 +124,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ docker_base_dir }}/{{ app.name }}"
     state: restarted
+  no_log: "{{ app.sensitive_config | default(false) }}"
   when:
     - app.state | default('present') == 'present'
     - not compose_up_result.changed

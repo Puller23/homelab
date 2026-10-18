@@ -1,0 +1,8 @@
+---
+homeassistant_postgresql_host: "{{ hostvars['db01'].ansible_host }}"
+homeassistant_postgresql_port: 5432
+homeassistant_postgresql_database: homeassistant
+homeassistant_postgresql_user: homeassistant
+# urlencode leaves '/' unchanged; encode it explicitly for URL credentials.
+homeassistant_recorder_db_url: >-
+  postgresql://{{ homeassistant_postgresql_user | urlencode | replace('/', '%2F') }}:{{ SECRET_POSTGRES_HOMEASSISTANT_PASSWORD | urlencode | replace('/', '%2F') }}@{{ homeassistant_postgresql_host }}:{{ homeassistant_postgresql_port }}/{{ homeassistant_postgresql_database | urlencode | replace('/', '%2F') }}

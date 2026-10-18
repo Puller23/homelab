@@ -21,3 +21,4 @@
   loop_control:
     loop_var: app
     label: "{{ app.name }}"
+  no_log: "{{ app.sensitive_config | default(false) }}"
