@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     environment:
       TZ: {{ TIMEZONE | to_json }}
+      NODE_RED_ENABLE_PROJECTS: true
     volumes:
       - ./data:/data
     networks:
