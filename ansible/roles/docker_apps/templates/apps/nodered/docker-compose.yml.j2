@@ -14,7 +14,6 @@ services:
       - "traefik.http.routers.nodered.rule=Host(`nodered.{{ SECRET_DOMAIN }}`)"
       - "traefik.http.routers.nodered.entrypoints=websecure"
       - "traefik.http.routers.nodered.tls.certresolver=ionos"
-      - "traefik.http.routers.nodered.middlewares=traefik-auth@docker"
       - "traefik.http.services.nodered.loadbalancer.server.port=1880"
       - "traefik.docker.network=proxy"
     logging:
