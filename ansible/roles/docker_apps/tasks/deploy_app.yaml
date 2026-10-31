@@ -24,7 +24,7 @@
 - name: Voraussetzungen für Automatisierungsdienste prüfen
   ansible.builtin.include_tasks: automation_prepare.yaml
   when:
-    - app.name in ['nodered', 'emqx']
+    - app.name == 'emqx'
     - app.state | default('present') == 'present'
 
 - name: Schreibzugriff und Anmeldung für den Home-Assistant-Editor vorbereiten

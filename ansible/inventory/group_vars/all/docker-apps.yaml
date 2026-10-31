@@ -53,6 +53,12 @@ docker_apps:
         group: '1000'
         mode: '0400'
 
+  # --- Node-RED ---
+  - name: nodered
+    compose_template: nodered/docker-compose.yml.j2
+    directories:
+      - {path: data, owner: '1000', group: '1000'}
+
   # --- N8N ---
   - name: n8n
     compose_template: n8n/docker-compose.yml.j2

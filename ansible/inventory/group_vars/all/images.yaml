@@ -1,4 +1,5 @@
 ---
+nodered_image: nodered/node-red:latest@sha256:2ccd38b4066648bd5e17430c50a2f8102c566a82fd4f2fc5c342e61664d6896f
 # Zentrale Image-Referenzen der Rolle docker_apps. Renovate verwaltet Tag und Digest.
 # Digests referenzieren das Registry-Manifest (bei Multiarch den Image-Index).
 code_server_image: codercom/code-server:latest@sha256:72ab24b5680ee597dd647b30d82625752f40109b5f61bef90ffbf1ea1f02dbb8
