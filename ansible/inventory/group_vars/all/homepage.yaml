@@ -8,8 +8,8 @@ homepage_proxmox_nodes: {}
 # Separate Secrets je Proxmox-Instanz; IDs können unabhängig überschrieben werden.
 homepage_proxmox_tokens:
   live-pve01:
-    id: "{{ SECRET_HOMEPAGE_PROXMOX_PVE01_TOKEN_ID | default('homepage@pve!homepage') }}"
+    id: "api@pam!homepage"
     secret: "{{ SECRET_HOMEPAGE_PROXMOX_PVE01_TOKEN_SECRET | default('') }}"
   live-pve02:
-    id: "{{ SECRET_HOMEPAGE_PROXMOX_PVE02_TOKEN_ID | default('homepage@pve!homepage') }}"
+    id: "api@pam!homepage"
     secret: "{{ SECRET_HOMEPAGE_PROXMOX_PVE02_TOKEN_SECRET | default('') }}"
