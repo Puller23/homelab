@@ -1,0 +1,10 @@
+---
+# absent verhindert den parallelen Start gegen die produktiven Kubernetes-Daten.
+# Beim Cutover mit -e paperless_state=present aktivieren.
+paperless_state: absent
+paperless_hostname: paperless.home.ibartels.de
+paperless_nfs_server: 10.18.20.20
+paperless_nfs_base_path: /mnt/data/nfs/k8s-storage/paperless
+# An die bisherigen Dateibesitzer auf dem NAS anpassen.
+paperless_uid: 1000
+paperless_gid: 1000

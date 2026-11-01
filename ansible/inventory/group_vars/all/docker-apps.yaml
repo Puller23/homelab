@@ -19,6 +19,8 @@ docker_apps:
     config_files:
       - src: traefik/config/traefik.yml.j2
         dest: config/traefik.yml
+      - src: traefik/config/dynamic/paperless.yml.j2
+        dest: config/dynamic/paperless.yml
       # Statische Route für Home Assistant, das wegen mDNS/SSDP im
       # host-Netzwerk läuft und daher nicht per Docker-Provider gefunden wird.
       - src: traefik/config/dynamic/homeassistant.yml.j2
@@ -65,3 +67,13 @@ docker_apps:
     directories:
       - {path: home, owner: '1000', group: '1000'}
       - {path: files, owner: '1000', group: '1000'}
+
+  # --- Paperless-ngx: erst nach dem Kubernetes-Cutover aktivieren ---
+  - name: paperless
+    state: "{{ paperless_state }}"
+    compose_template: paperless/docker-compose.yml.j2
+    sensitive_config: true
+    config_files:
+      - src: paperless/paperless.env.j2
+        dest: paperless.env
+        mode: '0600'

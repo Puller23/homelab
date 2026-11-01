@@ -1,0 +1,75 @@
+services:
+  redis:
+    image: {{ paperless_redis_image | to_json }}
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes']
+    volumes:
+      - redisdata:/data
+    networks:
+      - backend
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  paperless:
+    image: {{ paperless_image | to_json }}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - path: paperless.env
+        format: raw
+    environment:
+      PAPERLESS_OCR_LANGUAGE: deu
+      PAPERLESS_TIME_ZONE: Europe/Berlin
+      PAPERLESS_CONSUMER_POLLING: "60"
+      PAPERLESS_REDIS: redis://redis:6379
+      PAPERLESS_FILENAME_FORMAT: "{% raw %}{{created_year}}/{{correspondent}}/{{title}}{% endraw %}"
+      PAPERLESS_URL: "https://{{ paperless_hostname }}"
+      # Traefik authentifiziert hier keine Benutzer: Paperless-Login verwenden.
+      PAPERLESS_ENABLE_HTTP_REMOTE_USER: "false"
+      PAPERLESS_USE_X_FORWARD_HOST: "true"
+      PAPERLESS_USE_X_FORWARD_PORT: "true"
+      USERMAP_UID: {{ paperless_uid | string | to_json }}
+      USERMAP_GID: {{ paperless_gid | string | to_json }}
+    volumes:
+{% for volume in ['data', 'consume', 'export', 'media'] %}
+      - {{ volume }}:/usr/src/paperless/{{ volume }}
+{% endfor %}
+    networks:
+      - backend
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.paperless.rule=Host(`{{ paperless_hostname }}`)"
+      - "traefik.http.routers.paperless.entrypoints=websecure"
+      - "traefik.http.routers.paperless.tls.certresolver=ionos"
+      - "traefik.http.services.paperless.loadbalancer.server.port=8000"
+      - "traefik.http.services.paperless.loadbalancer.serverstransport=paperless@file"
+      - "traefik.docker.network=proxy"
+    logging: *logging
+
+networks:
+  backend:
+    internal: true
+  proxy:
+    external: true
+
+volumes:
+  redisdata:
+{% for volume in ['data', 'consume', 'export', 'media'] %}
+  {{ volume }}:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: {{ ('addr=' ~ paperless_nfs_server ~ ',rw,nfsvers=4,hard') | to_json }}
+      device: {{ (':' ~ paperless_nfs_base_path ~ '/' ~ volume) | to_json }}
+{% endfor %}

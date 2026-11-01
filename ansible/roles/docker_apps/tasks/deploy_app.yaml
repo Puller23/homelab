@@ -11,6 +11,28 @@
 #       dest: config/app.conf
 #   state: present                           # optional: present (default) oder absent zum Entfernen
 
+- name: Paperless-Secrets prüfen
+  ansible.builtin.assert:
+    that:
+      - lookup('vars', 'SECRET_' ~ paperless_secret, default='') | string | length > 0
+      - lookup('vars', 'SECRET_' ~ paperless_secret, default='') | string is not search('[\r\n]')
+    fail_msg: Die bisherigen Paperless-Secrets als einzeilige SECRET_PAPERLESS_* bereitstellen.
+  loop:
+    - PAPERLESS_ADMIN_USER
+    - PAPERLESS_ADMIN_PASSWORD
+    - PAPERLESS_SECRET_KEY
+    - PAPERLESS_DBHOST
+    - PAPERLESS_DBPORT
+    - PAPERLESS_DBUSER
+    - PAPERLESS_DBPASS
+    - PAPERLESS_DBNAME
+  loop_control:
+    loop_var: paperless_secret
+  when:
+    - app.name == 'paperless'
+    - app.state | default('present') == 'present'
+  no_log: true
+
 - name: PostgreSQL-Passwort für Home Assistant prüfen
   ansible.builtin.assert:
     that:
