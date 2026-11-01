@@ -1,0 +1,32 @@
+services:
+  esphome:
+    image: {{ esphome_image | to_json }}
+    container_name: esphome
+    restart: unless-stopped
+    user: "1000:1000"
+    command: ["dashboard", "/config"]
+    environment:
+      TZ: {{ TIMEZONE | to_json }}
+      HOME: /cache
+      ESPHOME_DASHBOARD_USE_PING: "true"
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esphome.rule=Host(`esphome.{{ SECRET_DOMAIN }}`)"
+      - "traefik.http.routers.esphome.entrypoints=websecure"
+      - "traefik.http.routers.esphome.tls.certresolver=ionos"
+      - "traefik.http.services.esphome.loadbalancer.server.port=6052"
+      - "traefik.docker.network=proxy"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true

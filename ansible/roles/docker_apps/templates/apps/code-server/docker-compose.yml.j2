@@ -22,6 +22,7 @@ services:
       - ./config/config.yaml:/etc/code-server/config.yaml:ro
       - ./data:/home/coder/.local
       - {{ (docker_base_dir ~ '/homeassistant/config:/config') | to_json }}
+      - {{ (docker_base_dir ~ '/esphome/config:/esphome') | to_json }}
     networks:
       - proxy
     labels:

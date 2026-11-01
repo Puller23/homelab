@@ -40,7 +40,14 @@ docker_apps:
     directories:
       - {path: config, owner: '1000', group: '1000'}
 
-  # --- VS Code im Browser für Home Assistant ---
+  # --- ESPHome: gemeinsame YAML-Dateien mit code-server ---
+  - name: esphome
+    compose_template: esphome/docker-compose.yml.j2
+    directories:
+      - {path: config, owner: '1000', group: '1000'}
+      - {path: cache, owner: '1000', group: '1000'}
+
+  # --- VS Code im Browser für Home Assistant und ESPHome ---
   - name: code-server
     compose_template: code-server/docker-compose.yml.j2
     sensitive_config: true
