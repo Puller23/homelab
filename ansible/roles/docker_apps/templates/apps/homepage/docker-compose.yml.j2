@@ -1,0 +1,30 @@
+services:
+  homepage:
+    image: {{ homepage_image | to_json }}
+    container_name: homepage
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: {{ TIMEZONE | to_json }}
+      HOMEPAGE_ALLOWED_HOSTS: {{ homepage_hostname | to_json }}
+    volumes:
+      - ./config:/app/config
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.rule=Host(`{{ homepage_hostname }}`)"
+      - "traefik.http.routers.homepage.entrypoints=websecure"
+      - "traefik.http.routers.homepage.tls.certresolver=ionos"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true

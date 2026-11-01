@@ -1,0 +1,61 @@
+- Infrastruktur:
+{% for host in groups.get('proxmox', []) %}
+{% set token = homepage_proxmox_tokens.get(host, {}) %}
+{% set token_id = token.get('id', SECRET_HOMEPAGE_PROXMOX_TOKEN_ID | default('')) %}
+{% set token_secret = token.get('secret', SECRET_HOMEPAGE_PROXMOX_TOKEN_SECRET | default('')) %}
+    - {{ host | to_json }}:
+        icon: proxmox.png
+        href: {{ ('https://' ~ hostvars[host].ansible_host ~ ':8006') | to_json }}
+        description: Proxmox VE
+{% if token_id and token_secret %}
+        widget:
+          type: proxmox
+          url: {{ ('https://' ~ hostvars[host].ansible_host ~ ':8006') | to_json }}
+          username: {{ token_id | to_json }}
+          password: {{ token_secret | to_json }}
+{% if homepage_proxmox_nodes.get(host) %}
+          node: {{ homepage_proxmox_nodes[host] | to_json }}
+{% endif %}
+{% endif %}
+{% endfor %}
+    - Traefik:
+        icon: traefik.png
+        href: "https://traefik.{{ SECRET_DOMAIN }}"
+    - Dockhand:
+        icon: dockhand.png
+        href: "https://dockhand.{{ SECRET_DOMAIN }}"
+- Smart Home:
+    - Home Assistant:
+        icon: home-assistant.png
+        href: "https://ha.{{ SECRET_DOMAIN }}"
+{% if SECRET_HOMEPAGE_HOMEASSISTANT_TOKEN | default('') %}
+        widget:
+          type: homeassistant
+          url: {{ homepage_homeassistant_url | to_json }}
+          key: {{ SECRET_HOMEPAGE_HOMEASSISTANT_TOKEN | to_json }}
+{% endif %}
+    - ESPHome:
+        icon: esphome.png
+        href: "https://esphome.{{ SECRET_DOMAIN }}"
+        widget:
+          type: esphome
+          url: http://esphome:6052
+    - Node-RED:
+        icon: node-red.png
+        href: "https://nodered.{{ SECRET_DOMAIN }}"
+- Anwendungen:
+    - Paperless:
+        icon: paperless-ngx.png
+        href: "https://{{ paperless_hostname }}"
+{% if SECRET_HOMEPAGE_PAPERLESS_TOKEN | default('') %}
+        widget:
+          type: paperlessngx
+          url: {{ homepage_paperless_url | to_json }}
+          key: {{ SECRET_HOMEPAGE_PAPERLESS_TOKEN | to_json }}
+{% endif %}
+    - n8n:
+        icon: n8n.png
+        href: "https://n8n.{{ SECRET_DOMAIN }}"
+    - VS Code:
+        icon: code.png
+        href: "https://vscode.{{ SECRET_DOMAIN }}"

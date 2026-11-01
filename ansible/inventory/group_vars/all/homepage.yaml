@@ -1,0 +1,15 @@
+---
+homepage_hostname: "homepage.{{ SECRET_DOMAIN }}"
+homepage_homeassistant_url: "http://{{ hostvars['docker01'].ansible_host }}:8123"
+homepage_paperless_url: http://paperless:8000
+# Überschreiben, falls die API-Namen von den Inventarnamen abweichen.
+# Ohne node fragt das Widget die Cluster-Übersicht ab.
+homepage_proxmox_nodes: {}
+# Separate Secrets je Proxmox-Instanz; IDs können unabhängig überschrieben werden.
+homepage_proxmox_tokens:
+  live-pve01:
+    id: "{{ SECRET_HOMEPAGE_PROXMOX_PVE01_TOKEN_ID | default('homepage@pve!homepage') }}"
+    secret: "{{ SECRET_HOMEPAGE_PROXMOX_PVE01_TOKEN_SECRET | default('') }}"
+  live-pve02:
+    id: "{{ SECRET_HOMEPAGE_PROXMOX_PVE02_TOKEN_ID | default('homepage@pve!homepage') }}"
+    secret: "{{ SECRET_HOMEPAGE_PROXMOX_PVE02_TOKEN_SECRET | default('') }}"

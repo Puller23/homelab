@@ -152,8 +152,16 @@
     - not compose_up_result.changed
     - (config_render_result.changed | default(false)) or (env_render_result.changed | default(false))
 
+- name: "{{ app.name }}: Vorhandene Compose-Konfiguration für Entfernung prüfen"
+  ansible.builtin.stat:
+    path: "{{ docker_base_dir }}/{{ app.name }}/docker-compose.yml"
+  register: compose_remove_config
+  when: app.state | default('present') == 'absent'
+
 - name: "{{ app.name }}: Stack entfernen"
   community.docker.docker_compose_v2:
     project_src: "{{ docker_base_dir }}/{{ app.name }}"
     state: absent
-  when: app.state | default('present') == 'absent'
+  when:
+    - app.state | default('present') == 'absent'
+    - compose_remove_config.stat.isreg | default(false)

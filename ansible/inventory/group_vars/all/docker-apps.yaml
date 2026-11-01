@@ -84,3 +84,28 @@ docker_apps:
       - src: paperless/paperless.env.j2
         dest: paperless.env
         mode: '0600'
+
+  # --- Homepage: zentrale Startseite ---
+  - name: homepage
+    compose_template: homepage/docker-compose.yml.j2
+    sensitive_config: true
+    directories:
+      - {path: config, owner: '1000', group: '1000'}
+    config_files:
+      - src: homepage/settings.yaml.j2
+        dest: config/settings.yaml
+        owner: '1000'
+        group: '1000'
+      - src: homepage/services.yaml.j2
+        dest: config/services.yaml
+        owner: '1000'
+        group: '1000'
+        mode: '0600'
+      - src: homepage/widgets.yaml.j2
+        dest: config/widgets.yaml
+        owner: '1000'
+        group: '1000'
+      - src: homepage/bookmarks.yaml.j2
+        dest: config/bookmarks.yaml
+        owner: '1000'
+        group: '1000'
