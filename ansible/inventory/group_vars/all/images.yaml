@@ -10,5 +10,5 @@ homeassistant_image: ghcr.io/home-assistant/home-assistant:2026.11@sha256:c6c1ca
 n8n_image: docker.n8n.io/n8nio/n8n:2.43.7@sha256:3db21366be1d3c77c1708963129c051948573019659e8873e0294be035ffc1b2
 paperless_image: ghcr.io/paperless-ngx/paperless-ngx:2.20.0
 paperless_redis_image: redis:6.2
-esphome_image: ghcr.io/esphome/esphome:stable
+esphome_image: ghcr.io/esphome/esphome:2026.10.2@sha256:4a918585150e95e7675be84a347384ff308fde1bd32d0e4472666e1252cc0e8f
 homepage_image: ghcr.io/gethomepage/homepage:latest
